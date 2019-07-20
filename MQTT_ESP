@@ -1,0 +1,174 @@
+#include "DHT.h"
+#include <PubSubClient.h>
+#include <ESP8266WiFi.h>
+
+#define WIFI_AP "SEYYYED"
+#define WIFI_PASSWORD "12345678reza"
+
+#define TOKEN "ESP8266_DEMO_TOKEN"
+
+// DHT
+#define DHTPIN 2
+#define DHTTYPE DHT11
+
+//LDR
+int LDRpin = A0;
+
+//SoilM
+int soilPin = 4;
+
+char thingsboardServer[] = "192.168.43.176";
+
+WiFiClient wifiClient;
+
+// Initialize DHT sensor.
+DHT dht(DHTPIN, DHTTYPE);
+
+PubSubClient client(wifiClient);
+
+int status = WL_IDLE_STATUS;
+unsigned long lastSend;
+
+void setup()
+{
+  Serial.begin(115200);
+  dht.begin();
+  delay(10);
+  InitWiFi();
+  client.setServer( thingsboardServer, 1883 );
+  lastSend = 0;
+
+  pinMode(soilPin, INPUT_PULLUP);
+}
+
+void loop()
+{
+  if ( !client.connected() ) {
+    reconnect();
+  }
+
+  if ( millis() - lastSend > 1000 ) { // Update and send only after 1 seconds
+    getAndSendTemperatureAndHumidityData();
+    lastSend = millis();
+  }
+
+  client.loop();
+}
+
+void getAndSendTemperatureAndHumidityData()
+{
+  Serial.println("Collecting temperature data.");
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+
+  //LDR
+  int sum = 0;
+  for (int i=0; i<10; i++){
+     int light_n = analogRead(LDRpin);
+     sum += light_n;
+  }
+  float l = 100.0 - ((sum/10.0)/1024.0)*100.0;
+   // float l = analogRead(LDRpin);
+  
+  //SoilM
+  int s = digitalRead(soilPin);
+  
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+  else if (isnan (l)){
+    Serial.println("Failed to read from LDR sensor!");
+    return;
+  }
+
+  else if (isnan (s)){
+    Serial.println("Failed to read from SoilMoisture sensor!");
+    return;
+  }
+
+  Serial.print("Humidity: ");
+  Serial.print(h);
+  Serial.print(" %\t");
+  Serial.print("Temperature: ");
+  Serial.print(t);
+  Serial.print(" *C ");
+  Serial.print("Light intensity: ");
+  Serial.print(l);
+  Serial.print(" LUX ");
+  Serial.print("if (1), the soil is moist: ");
+  Serial.print(s);
+  Serial.print(" .");
+
+  String temperature = String(t);
+  String humidity = String(h);
+  String lightIntensity = String(l);
+  String soilmoisture = String(s);
+
+  // Just debug messages
+  Serial.print( "Sending temperature and humidity : [" );
+  Serial.print( temperature ); Serial.print( "," );
+  Serial.print( humidity ); Serial.print( "," );
+  Serial.print( lightIntensity ); Serial.print( "," );
+  Serial.print( soilmoisture );
+  Serial.print( "]   -> " );
+
+  // Prepare a JSON payload string
+  String payload = "{";
+  payload += "\"temperature\":"; payload += temperature; payload += ",";
+  payload += "\"humidity\":"; payload += humidity; payload += ",";
+  payload += "\"lightIntensity\":"; payload += lightIntensity; payload += ",";
+  payload += "\"soilmoisture\":"; payload += soilmoisture;
+  payload += "}";
+
+  // Send payload
+  char attributes[100];
+  payload.toCharArray( attributes, 100 );
+  client.publish( "v1/devices/me/telemetry", attributes );
+  Serial.println( attributes );
+
+}
+
+void InitWiFi()
+{
+  Serial.println("Connecting to AP ...");
+  // attempt to connect to WiFi network
+
+  WiFi.begin(WIFI_AP, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected to AP");
+}
+
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    status = WiFi.status();
+    if ( status != WL_CONNECTED) {
+      WiFi.begin(WIFI_AP, WIFI_PASSWORD);
+      while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+      }
+      Serial.println("Connected to AP");
+    }
+    Serial.print("Connecting to ThingsBoard node ...");
+    // Attempt to connect (clientId, username, password)
+    if ( client.connect("ESP8266 Device", TOKEN, NULL) ) {
+      Serial.println( "[DONE]" );
+    } else {
+      Serial.print( "[FAILED] [ rc = " );
+      Serial.print( client.state() );
+      Serial.println( " : retrying in 5 seconds]" );
+      // Wait 5 seconds before retrying
+      delay( 5000 );
+    }
+  }
+}
