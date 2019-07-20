@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+
+</script>
+
+<style>
+body {
+    
+    margin: 16%;
+
+    /* The image used */
+    background-image: url("/static/smartFarm_logo.png");
+
+    /* Full height */
+    height: 100%; 
+
+    /* Center and scale the image nicely */
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+
+table, th, td {
+    border: 2px solid black;
+    font-size: 120%;
+    color: green;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<script type=text/javascript>
+    SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+  // $(function() {
+  //   $('#calculate').bind('click', function() {
+  //     $.getJSON(SCRIPT_ROOT + '/_add_numbers', {
+  //       a: $('input[name="a"]').val(),
+  //       b: $('input[name="b"]').val()
+  //     }, function(data) {
+  //       $("#result").text(data.result);
+  //     });
+  //     return false;
+  //   });
+  // });
+
+
+  // $(function() {
+  //   $('#change').bind('click', function() {
+  //     $.getJSON(SCRIPT_ROOT + '/_change', {
+  //       a: $('input[name="aa"]').val()
+  //     }, function(data) {
+  //       $("#result3").text(data.result);
+  //     });
+  //     return false;
+  //   });
+  // });
+
+
+
+setInterval(myMethod, 1000);
+
+function myMethod( )
+{
+      $.getJSON(SCRIPT_ROOT + '/_ref', {}, function(data) {
+        //$("#result2").text(data.myresult);
+        var obb=data.myresult;
+        var values=obb["values"];
+        var times=obb["timestamps"];
+       $("#nodeName1").text(obb["sensorName"]);
+       // $("#sensorName1").text(obb["sensorType"]);
+       
+var sensorN = ["Temprature", "Humidity", "Light intensity", "Soil moisture"];
+
+var str1="<table><tr><th>Sensor Name</th><th>Value</th><th>Time</th></tr>";
+
+
+for (var i=0;i<values.length;i++){
+        str1+="<tr><td> "+sensorN[i] +"</td>"+"<td> "+values[i]+"</td>"+"<td> "+times[i]+"</td></tr>";
+       }
+
+    str1+="</table>";
+    document.getElementById("value1").innerHTML=str1;
+      });
+}
+
+
+
+</script>
+
+
+
+<!-- <h1>Adder Example</h1>
+<p><input type=text size=5 name=a> +
+   <input type=text size=5 name=b> =
+   <span id=result>?</span>
+<p><a href=# id=calculate>calculate server side</a>
+
+</p>
+  </p>
+
+
+
+The random for seconds :<span id=result2>?</span>
+
+
+<h1>Send Data</h1>
+<p><input type=text size=5 name=aa></p>
+
+Changed Value :<span id=result3>?</span>
+<p><a href=# id=change>put</a>
+
+</p> -->
+
+
+<table style="width:100%">
+  <tr>
+    <th>Node Name</th>
+    <!-- <th>Sensor Type</th>  -->
+    <th>Values</th>
+  </tr>
+  <tr>
+ <td align="center"><span id="nodeName1"/></td>
+ <!-- <td><span  id="sensorName1"/></td> -->
+  <td align="center"><span id="value1"/></td>
+  </tr>
+  
+</table>
+
+
+
+
+</body>
+</html>
